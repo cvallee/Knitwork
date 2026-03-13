@@ -6,8 +6,7 @@ import json
 import time
 import asyncio
 from rdkit.Chem import MolFromSmiles
-from neo4j import GraphDatabase, AsyncGraphDatabase, Query
-from neo4j.exceptions import ClientError
+from neo4j import GraphDatabase, AsyncGraphDatabase
 
 from .config import CONFIG
 from .tools import load_sig_factory, calc_pharm_fp
