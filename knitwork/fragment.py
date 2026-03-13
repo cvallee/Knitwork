@@ -17,6 +17,7 @@ def fragment(
     overlap_cutoff: float = CONFIG["FRAGMENT_OVERLAP_CUTOFF"],
     distance_cutoff: float = CONFIG["FRAGMENT_DISTANCE_CUTOFF"],
     discard_props: bool = True,
+    timeout: float | None = None,
 ):
 
     import pandas as pd
@@ -57,7 +58,9 @@ def fragment(
         t1 = progress.add_task("query subnodes", total=n_unique)
         t2 = progress.add_task("query synthons", total=n_unique)
         t3 = progress.add_task("query r_groups", total=n_unique)
-        results = asyncio.run(fragment_tasks(smiles_list, progress, (t1, t2, t3)))
+        results = asyncio.run(
+            fragment_tasks(smiles_list, progress, timeout, (t1, t2, t3))
+        )
 
     # filter results
     for smiles, v in results.items():
@@ -134,7 +137,7 @@ def fragment(
     pair_df.to_pickle(pair_df_path)
 
 
-async def fragment_tasks(smiles_list, progress, tasks):
+async def fragment_tasks(smiles_list, progress, timeout, tasks):
 
     t1, t2, t3 = tasks
 
@@ -147,7 +150,11 @@ async def fragment_tasks(smiles_list, progress, tasks):
         for smiles in smiles_list
     ]
 
-    results = await asyncio.gather(*tasks)
+    if timeout:
+        async with asyncio.timeout(timeout):
+            results = await asyncio.gather(*tasks)
+    else:
+        results = await asyncio.gather(*tasks)
 
     return {
         smiles: {"subnodes": subnodes, "synthons": synthons, "r_groups": r_groups}

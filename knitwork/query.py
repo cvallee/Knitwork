@@ -6,7 +6,8 @@ import json
 import time
 import asyncio
 from rdkit.Chem import MolFromSmiles
-from neo4j import GraphDatabase, AsyncGraphDatabase
+from neo4j import GraphDatabase, AsyncGraphDatabase, Query
+from neo4j.exceptions import ClientError
 
 from .config import CONFIG
 from .tools import load_sig_factory, calc_pharm_fp
@@ -251,23 +252,19 @@ def get_pure_expansions(
         MATCH (b)<-[e:FRAG]-(c:Mol)
         WHERE e.prop_synthon = $synthon
         RETURN c.smiles AS smi, c.cmpd_ids AS ids
-        """ % {
-            "num_hops": num_hops
-        }
+        """ % {"num_hops": num_hops}
     else:
         query = """
         MATCH (a:F2 {smiles: $smiles})<-[:FRAG*0..%(num_hops)d]-(b:F2)<-[e:FRAG]-(c:Mol)
         WHERE e.prop_synthon=$synthon
         WITH c.smiles AS smi, c.cmpd_ids AS ids
         RETURN smi, ids
-        """ % {
-            "num_hops": num_hops
-        }
+        """ % {"num_hops": num_hops}
 
     if limit:
         query = query + f" LIMIT {limit}"
 
-    logging.info(f"Starting impure expansion {index} {smiles} {synthon}")
+    logging.info(f"Starting pure expansion {index} {smiles} {synthon}")
 
     try:
         records = run_query(query, smiles=smiles, synthon=synthon)

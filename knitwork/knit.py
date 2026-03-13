@@ -19,6 +19,7 @@ def pure_merge(
     output_dir: str = "knitwork_output",
     cached_only: bool = False,
     limit: int = 5,
+    timeout: float | None = None,
 ) -> "pd.DataFrame":
     """Generate 'pure' Knitwork merges'"""
 
@@ -30,9 +31,16 @@ def pure_merge(
 
     substructure_pairs = get_unique_substructure_pairs(pairs_df)
 
+    # custom logger
+    import logging, sys
+
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO, force=True)
+
     # parallel merging
     results = Parallel(
-        n_jobs=CONFIG["KNITWORK_NUM_CONNECTIONS"], backend="multiprocessing"
+        n_jobs=CONFIG["KNITWORK_NUM_CONNECTIONS"],
+        timeout=timeout,
+        backend="multiprocessing",
     )(
         delayed(get_pure_expansions)(
             smiles,
@@ -100,6 +108,7 @@ def impure_merge(
     output_dir: str = "knitwork_output",
     cached_only: bool = False,
     limit: int = 5,
+    timeout: float | None = None,
 ) -> "pd.DataFrame":
     """Generate 'impure' Knitwork merges'"""
 
@@ -119,7 +128,9 @@ def impure_merge(
 
     # parallel merging
     results = Parallel(
-        n_jobs=CONFIG["KNITWORK_NUM_CONNECTIONS"], backend="multiprocessing"
+        n_jobs=CONFIG["KNITWORK_NUM_CONNECTIONS"],
+        timeout=timeout,
+        backend="multiprocessing",
     )(
         delayed(get_impure_expansions)(
             smiles,
