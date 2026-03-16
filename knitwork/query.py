@@ -80,7 +80,7 @@ async def aget_subnodes(
           relationshipFilter: 'FRAG>',
           minLevel: 0,
           maxLevel: %(num_hops)d,
-          uniqueness: 'NODE_GLOBAL'
+          uniqueness: 'RELATIONSHIP_GLOBAL'
         }) YIELD path
         WITH last(nodes(path)) AS f, relationships(path) AS e
         """ % {
@@ -131,7 +131,7 @@ async def aget_synthons(
           relationshipFilter: 'FRAG>',
           minLevel: 0,
           maxLevel: %(num_hops)d,
-          uniqueness: 'NODE_GLOBAL'
+          uniqueness: 'RELATIONSHIP_GLOBAL'
         }) YIELD path
         WITH last(nodes(path)) AS b, relationships(path) AS e
         """ % {
@@ -186,7 +186,7 @@ async def aget_r_groups(
           relationshipFilter: 'FRAG>',
           minLevel: 0,
           maxLevel: %(num_hops)d,
-          uniqueness: 'NODE_GLOBAL'
+          uniqueness: 'RELATIONSHIP_GLOBAL'
         }) YIELD path
         WITH last(nodes(path)) AS b, relationships(path) AS e
         WHERE NOT ()-[:FRAG]-(b)-[:FRAG]->()
@@ -245,7 +245,7 @@ def get_pure_expansions(
           relationshipFilter: '<FRAG',
           minLevel: 0,
           maxLevel: %(num_hops)d,
-          uniqueness: 'NODE_GLOBAL'
+          uniqueness: 'RELATIONSHIP_GLOBAL'
         }) YIELD path
         WITH last(nodes(path)) AS b
         MATCH (b)<-[e:FRAG]-(c:Mol)
@@ -322,7 +322,7 @@ def get_impure_expansions(
           relationshipFilter: '<FRAG',
           minLevel: 0,
           maxLevel: %(num_hops)d,
-          uniqueness: 'NODE_GLOBAL'
+          uniqueness: 'RELATIONSHIP_GLOBAL'
         }) YIELD path
         WITH last(nodes(path)) AS b
         MATCH (b)<-[e:FRAG]-(c:Mol)
