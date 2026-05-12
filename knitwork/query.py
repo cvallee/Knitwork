@@ -351,7 +351,7 @@ def get_impure_expansions(
         WITH last(nodes(path)) AS b
         MATCH (b)<-[e:FRAG]-(c:Mol)
         WHERE e.prop_pharmfp IS NOT NULL
-        WITH %(metric)s(e.prop_pharmfp, '%(vector)s') AS sim, c.smiles AS smi, e.prop_synthon AS syn, c.cmpd_ids AS ids
+        WITH %(metric)s(e.prop_pharmfp, %(vector)s) AS sim, c.smiles AS smi, e.prop_synthon AS syn, c.cmpd_ids AS ids
         WHERE sim >= %(threshold)d
         AND NOT e.prop_synthon='%(synthon)s'
         RETURN smi, syn, sim, ids
@@ -367,7 +367,7 @@ def get_impure_expansions(
         query = """
         MATCH (a:F2 {smiles: '%(smiles)s'})<-[:FRAG*0..%(num_hops)d]-(b:F2)<-[e:FRAG]-(c:Mol)
         WHERE e.prop_pharmfp IS NOT NULL
-        WITH %(metric)s(e.prop_pharmfp, '%(vector)s') AS sim, c.smiles AS smi, e.prop_synthon AS syn, c.cmpd_ids AS ids
+        WITH %(metric)s(e.prop_pharmfp, %(vector)s) AS sim, c.smiles AS smi, e.prop_synthon AS syn, c.cmpd_ids AS ids
         WHERE sim >= %(threshold)d
         AND NOT e.prop_synthon='%(synthon)s'
         RETURN smi, syn, sim, ids
