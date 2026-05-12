@@ -334,7 +334,7 @@ def get_impure_expansions(
         bins=json.loads(CONFIG["FINGERPRINT_BINS"]),
     )
 
-    vector = calc_pharm_fp(MolFromSmiles(synthon), sig_factory, as_str=True)
+    vector = calc_pharm_fp(MolFromSmiles(synthon), sig_factory, as_str=False)
 
     threshold = CONFIG["KNITWORK_SIMILARITY_THRESHOLD"]
     metric = CONFIG["KNITWORK_SIMILARITY_METRIC"]
