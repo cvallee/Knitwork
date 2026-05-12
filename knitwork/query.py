@@ -39,26 +39,26 @@ async def aget_driver():
     )
 
 
-async def arun_query(query, timeout=None, **kwargs):
+async def arun_query(query, timeout=None):
     driver = await aget_driver()
     async with driver:
         async with driver.session() as session:
             if timeout:
-                result = await session.run(Query(query, **kwargs), timeout=timeout)
+                result = await session.run(Query(query), timeout=timeout)
             else:
-                result = await session.run(Query(query, **kwargs))
+                result = await session.run(Query(query))
             records = [record async for record in result]
             return records
 
 
-def run_query(query, timeout=None, **kwargs):
+def run_query(query, timeout=None):
     driver = get_driver()
     with driver:
         with driver.session() as session:
             if timeout:
-                result = session.run(Query(query, **kwargs), timeout=timeout)
+                result = session.run(Query(query), timeout=timeout)
             else:
-                result = session.run(Query(query, **kwargs))
+                result = session.run(Query(query))
             records = [record for record in result]
             return records
 
@@ -82,7 +82,7 @@ async def aget_subnodes(
 
     if prevent_cylces:
         query = """
-        MATCH (a:F2 {smiles: $smiles})
+        MATCH (a:F2 {smiles: '%(smiles)s'})
         CALL apoc.path.expandConfig(a, {
           relationshipFilter: 'FRAG>',
           minLevel: 0,
@@ -91,12 +91,14 @@ async def aget_subnodes(
         }) YIELD path
         WITH last(nodes(path)) AS f, relationships(path) AS e
         """ % {
+            "smiles": smiles,
             "num_hops": num_hops,
         }
     else:
         query = """
-        MATCH (a:F2 {smiles: $smiles})-[e:FRAG*0..%(num_hops)d]->(f:F2)
+        MATCH (a:F2 {smiles: '%(smiles)s'})-[e:FRAG*0..%(num_hops)d]->(f:F2)
         """ % {
+            "smiles": smiles,
             "num_hops": num_hops,
         }
 
@@ -105,7 +107,7 @@ async def aget_subnodes(
 
     query = query + " RETURN f"
 
-    records = await arun_query(query, smiles=smiles, timeout=timeout)
+    records = await arun_query(query, timeout=timeout)
     subnodes = [record["f"]["smiles"] for record in records]
 
     if progress:
@@ -134,7 +136,7 @@ async def aget_synthons(
 
     if prevent_cylces:
         query = """
-        MATCH (a:F2 {smiles: $smiles})
+        MATCH (a:F2 {smiles: '%(smiles)s'})
         CALL apoc.path.expandConfig(a, {
           relationshipFilter: 'FRAG>',
           minLevel: 0,
@@ -143,12 +145,14 @@ async def aget_synthons(
         }) YIELD path
         WITH last(nodes(path)) AS b, relationships(path) AS e
         """ % {
+            "smiles": smiles,
             "num_hops": num_hops,
         }
     else:
         query = """
-        MATCH (a:F2 {smiles: $smiles})-[e:FRAG*0..%(num_hops)d]->(b:F2)
+        MATCH (a:F2 {smiles: '%(smiles)s'})-[e:FRAG*0..%(num_hops)d]->(b:F2)
         """ % {
+            "smiles": smiles,
             "num_hops": num_hops,
         }
 
@@ -157,7 +161,7 @@ async def aget_synthons(
 
     query = query + " RETURN e[-1] AS edge"
 
-    records = await arun_query(query, timeout=timeout, smiles=smiles)
+    records = await arun_query(query, timeout=timeout)
     edges = [edge for record in records if (edge := record["edge"])]
 
     synthons = set()
@@ -190,7 +194,7 @@ async def aget_r_groups(
 
     if prevent_cylces:
         query = """
-        MATCH (a:F2 {smiles: $smiles})
+        MATCH (a:F2 {smiles: '%(smiles)s'})
         CALL apoc.path.expandConfig(a, {
           relationshipFilter: 'FRAG>',
           minLevel: 0,
@@ -203,21 +207,22 @@ async def aget_r_groups(
         AND NOT e[-1].prop_synthon=e[-2].prop_synthon
         RETURN e[-1].prop_synthon AS synthon, e[-2].prop_synthon AS r_group;
         """ % {
+            "smiles": smiles,
             "num_hops": num_hops,
         }
     else:
         query = """
-        MATCH (a:F2 {smiles: $smiles})-[e:FRAG*0..%(num_hops)d]->(b:F2)
+        MATCH (a:F2 {smiles: '%(smiles)s'})-[e:FRAG*0..%(num_hops)d]->(b:F2)
         WHERE NOT ()-[:FRAG]-(b)-[:FRAG]->()
         AND e[-1].prop_synthon contains '[Xe]'
         AND NOT e[-1].prop_synthon=e[-2].prop_synthon
         RETURN e[-1].prop_synthon AS synthon, e[-2].prop_synthon AS r_group;
         """ % {
+            "smiles": smiles,
             "num_hops": num_hops,
         }
 
-    records = await arun_query(query, timeout=timeout, smiles=smiles)
-
+    records = await arun_query(query, timeout=timeout)
     results = []
     for record in records:
         results.append((record["synthon"], record["r_group"]))
@@ -249,7 +254,7 @@ def get_pure_expansions(
 
     if prevent_cylces:
         query = """
-        MATCH (a:F2 {smiles: $smiles})
+        MATCH (a:F2 {smiles: '%(smiles)s'})
         CALL apoc.path.expandConfig(a, {
           relationshipFilter: '<FRAG',
           minLevel: 0,
@@ -258,16 +263,24 @@ def get_pure_expansions(
         }) YIELD path
         WITH last(nodes(path)) AS b
         MATCH (b)<-[e:FRAG]-(c:Mol)
-        WHERE e.prop_synthon = $synthon
+        WHERE e.prop_synthon = '%(synthon)s'
         RETURN c.smiles AS smi, c.cmpd_ids AS ids
-        """ % {"num_hops": num_hops}
+        """ % {
+            "smiles": smiles,
+            "synthon": synthon,
+            "num_hops": num_hops
+            }
     else:
         query = """
-        MATCH (a:F2 {smiles: $smiles})<-[:FRAG*0..%(num_hops)d]-(b:F2)<-[e:FRAG]-(c:Mol)
-        WHERE e.prop_synthon=$synthon
+        MATCH (a:F2 {smiles: '%(smiles)s'})<-[:FRAG*0..%(num_hops)d]-(b:F2)<-[e:FRAG]-(c:Mol)
+        WHERE e.prop_synthon='%(synthon)s'
         WITH c.smiles AS smi, c.cmpd_ids AS ids
         RETURN smi, ids
-        """ % {"num_hops": num_hops}
+        """ % {
+            "smiles": smiles,
+            "synthon": synthon,
+            "num_hops": num_hops
+        }
 
     if limit:
         query = query + f" LIMIT {limit}"
@@ -275,7 +288,7 @@ def get_pure_expansions(
     logging.info(f"Starting pure expansion {index} {smiles} {synthon}")
 
     try:
-        records = run_query(query, smiles=smiles, synthon=synthon, timeout=timeout)
+        records = run_query(query, timeout=timeout)
     except Exception as e:
         mrich.error(index, e)
         raise Exception(f"{smiles=} {synthon=} {e}")
@@ -319,14 +332,14 @@ def get_impure_expansions(
         bins=json.loads(CONFIG["FINGERPRINT_BINS"]),
     )
 
-    vector = calc_pharm_fp(MolFromSmiles(synthon), sig_factory, as_str=False)
+    vector = calc_pharm_fp(MolFromSmiles(synthon), sig_factory, as_str=True)
 
     threshold = CONFIG["KNITWORK_SIMILARITY_THRESHOLD"]
     metric = CONFIG["KNITWORK_SIMILARITY_METRIC"]
 
     if prevent_cylces:
         query = """
-        MATCH (a:F2 {smiles: $smiles})
+        MATCH (a:F2 {smiles: '%(smiles)s'})
         CALL apoc.path.expandConfig(a, {
           relationshipFilter: '<FRAG',
           minLevel: 0,
@@ -336,39 +349,40 @@ def get_impure_expansions(
         WITH last(nodes(path)) AS b
         MATCH (b)<-[e:FRAG]-(c:Mol)
         WHERE e.prop_pharmfp IS NOT NULL
-        WITH usersimilarity.tanimoto_similarity(e.prop_pharmfp, $vector) AS sim, c.smiles AS smi, e.prop_synthon AS syn, c.cmpd_ids AS ids
-        WHERE sim >= $threshold
-        AND NOT e.prop_synthon=$query_synthon
+        WITH '%(metric)s'(e.prop_pharmfp, '%(vector)s') AS sim, c.smiles AS smi, e.prop_synthon AS syn, c.cmpd_ids AS ids
+        WHERE sim >= %(threshold)d
+        AND NOT e.prop_synthon='%(synthon)s'
         RETURN smi, syn, sim, ids
         """ % {
+            "smiles": smiles,
+            "synthon": synthon,
             "num_hops": num_hops,
+            "metric": metric,
+            "vector": vector,
+            "threshold": threshold
         }
     else:
         query = """
-        MATCH (a:F2 {smiles: $smiles})<-[:FRAG*0..%(num_hops)d]-(b:F2)<-[e:FRAG]-(c:Mol)
+        MATCH (a:F2 {smiles: '%(smiles)s'})<-[:FRAG*0..%(num_hops)d]-(b:F2)<-[e:FRAG]-(c:Mol)
         WHERE e.prop_pharmfp IS NOT NULL
-        WITH usersimilarity.tanimoto_similarity(e.prop_pharmfp, $vector) as sim, c.smiles as smi, e.prop_synthon as syn, c.cmpd_ids as ids
-        WHERE sim >= $threshold
-        AND NOT e.prop_synthon=$query_synthon
+        WITH '%(metric)s'(e.prop_pharmfp, '%(vector)s') AS sim, c.smiles AS smi, e.prop_synthon AS syn, c.cmpd_ids AS ids
+        WHERE sim >= %(threshold)d
+        AND NOT e.prop_synthon='%(synthon)s'
         RETURN smi, syn, sim, ids
         """ % {
+            "smiles": smiles,
+            "synthon": synthon,
             "num_hops": num_hops,
+            "metric": metric,
+            "vector": vector,
+            "threshold": threshold
         }
 
     if limit:
         query = query + f" LIMIT {limit}"
 
     try:
-        records = run_query(
-            query,
-            smiles=smiles,
-            query_synthon=synthon,
-            vector=vector,
-            threshold=threshold,
-            metric=metric,
-            # num_hops=num_hops,
-            timeout=timeout,
-        )
+        records = run_query(query, timeout=timeout)
     except Exception as e:
         mrich.error(index, e)
         raise Exception(f"{smiles=} {synthon=} {e}")
