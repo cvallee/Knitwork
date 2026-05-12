@@ -143,18 +143,14 @@ async def fragment_tasks(smiles_list, progress, timeout, tasks):
 
     tasks = [
         asyncio.gather(
-            aget_subnodes(smiles, progress=progress, task=t1),
-            aget_synthons(smiles, progress=progress, task=t2),
-            aget_r_groups(smiles, progress=progress, task=t3),
+            aget_subnodes(smiles, progress=progress, timeout=timeout, task=t1),
+            aget_synthons(smiles, progress=progress, timeout=timeout, task=t2),
+            aget_r_groups(smiles, progress=progress, timeout=timeout, task=t3),
         )
         for smiles in smiles_list
     ]
 
-    if timeout:
-        async with asyncio.timeout(timeout):
-            results = await asyncio.gather(*tasks)
-    else:
-        results = await asyncio.gather(*tasks)
+    results = await asyncio.gather(*tasks)
 
     return {
         smiles: {"subnodes": subnodes, "synthons": synthons, "r_groups": r_groups}
