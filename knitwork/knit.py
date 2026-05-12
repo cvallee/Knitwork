@@ -39,7 +39,6 @@ def pure_merge(
     # parallel merging
     results = Parallel(
         n_jobs=CONFIG["KNITWORK_NUM_CONNECTIONS"],
-        timeout=timeout,
         backend="multiprocessing",
     )(
         delayed(get_pure_expansions)(
@@ -49,6 +48,7 @@ def pure_merge(
             cache_dir=cache_dir,
             cached_only=cached_only,
             limit=limit,
+            timeout=timeout,
         )
         for i, (_, smiles, synthon) in enumerate(substructure_pairs)
     )
@@ -129,7 +129,6 @@ def impure_merge(
     # parallel merging
     results = Parallel(
         n_jobs=CONFIG["KNITWORK_NUM_CONNECTIONS"],
-        timeout=timeout,
         backend="multiprocessing",
     )(
         delayed(get_impure_expansions)(
@@ -139,6 +138,7 @@ def impure_merge(
             cache_dir=cache_dir,
             cached_only=cached_only,
             limit=limit,
+            timeout=timeout,
         )
         for i, (_, smiles, synthon) in enumerate(substructure_pairs)
     )

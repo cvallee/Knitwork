@@ -242,6 +242,7 @@ def get_pure_expansions(
     prevent_cylces: bool = True,
     cache_dir=None,
     cached_only=False,
+    timeout=None,
 ):
 
     if cache_dir:
@@ -314,6 +315,7 @@ def get_impure_expansions(
     prevent_cylces: bool = True,
     cache_dir=None,
     cached_only=False,
+    timeout=None,
 ):
 
     if cache_dir:
