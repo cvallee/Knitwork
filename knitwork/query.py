@@ -39,20 +39,24 @@ async def aget_driver():
     )
 
 
-async def arun_query(query, **kwargs):
+async def arun_query(query, timeout=None, **kwargs):
     driver = await aget_driver()
     async with driver:
         async with driver.session() as session:
-            result = await session.run(query, **kwargs)
+            if timeout:
+                async with asyncio.timeout(timeout):
+                    result = await session.run(query, **kwargs)
+            else:
+                result = await session.run(query, **kwargs)
             records = [record async for record in result]
             return records
 
 
-def run_query(query, **kwargs):
+def run_query(query, timeout=None, **kwargs):
     driver = get_driver()
     with driver:
         with driver.session() as session:
-            result = session.run(query, **kwargs)
+            result = session.run(query, timeout=timeout, **kwargs)
             records = [record for record in result]
             return records
 
@@ -64,6 +68,7 @@ async def aget_subnodes(
     prevent_cylces: bool = True,
     progress=None,
     task=None,
+    timeout=None,
 ):
     """
     Get subnodes for a given node (retrieve using SMILES)
@@ -98,7 +103,7 @@ async def aget_subnodes(
 
     query = query + " RETURN f"
 
-    records = await arun_query(query, smiles=smiles)
+    records = await arun_query(query, smiles=smiles, timeout=timeout)
     subnodes = [record["f"]["smiles"] for record in records]
 
     if progress:
@@ -114,6 +119,7 @@ async def aget_synthons(
     prevent_cylces: bool = True,
     progress=None,
     task=None,
+    timeout=None,
 ):
     """
     Get constituent synthons (compounds added or removed during transformation) for a given node SMILES.
@@ -149,7 +155,7 @@ async def aget_synthons(
 
     query = query + " RETURN e[-1] AS edge"
 
-    records = await arun_query(query, smiles=smiles)
+    records = await arun_query(query, timeout=timeout, smiles=smiles)
     edges = [edge for record in records if (edge := record["edge"])]
 
     synthons = set()
@@ -177,6 +183,7 @@ async def aget_r_groups(
     prevent_cylces: bool = True,
     progress=None,
     task=None,
+    timeout=None,
 ):
 
     if prevent_cylces:
@@ -207,7 +214,7 @@ async def aget_r_groups(
             "num_hops": num_hops,
         }
 
-    records = await arun_query(query, smiles=smiles)
+    records = await arun_query(query, timeout=timeout, smiles=smiles)
 
     results = []
     for record in records:
@@ -266,7 +273,7 @@ def get_pure_expansions(
     logging.info(f"Starting pure expansion {index} {smiles} {synthon}")
 
     try:
-        records = run_query(query, smiles=smiles, synthon=synthon)
+        records = run_query(query, smiles=smiles, synthon=synthon, timeout=timeout)
     except Exception as e:
         mrich.error(index, e)
         raise Exception(f"{smiles=} {synthon=} {e}")
@@ -358,6 +365,7 @@ def get_impure_expansions(
             threshold=threshold,
             metric=metric,
             # num_hops=num_hops,
+            timeout=timeout,
         )
     except Exception as e:
         mrich.error(index, e)
