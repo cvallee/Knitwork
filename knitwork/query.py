@@ -6,7 +6,7 @@ import json
 import time
 import asyncio
 from rdkit.Chem import MolFromSmiles
-from neo4j import GraphDatabase, AsyncGraphDatabase
+from neo4j import GraphDatabase, AsyncGraphDatabase, Query
 
 from .config import CONFIG
 from .tools import load_sig_factory, calc_pharm_fp
@@ -44,10 +44,9 @@ async def arun_query(query, timeout=None, **kwargs):
     async with driver:
         async with driver.session() as session:
             if timeout:
-                async with asyncio.timeout(timeout):
-                    result = await session.run(query, **kwargs)
+                result = await session.run(Query(query, **kwargs), timeout=timeout)
             else:
-                result = await session.run(query, **kwargs)
+                result = await session.run(Query(query, **kwargs))
             records = [record async for record in result]
             return records
 
@@ -56,7 +55,10 @@ def run_query(query, timeout=None, **kwargs):
     driver = get_driver()
     with driver:
         with driver.session() as session:
-            result = session.run(query, timeout=timeout, **kwargs)
+            if timeout:
+                result = session.run(Query(query, **kwargs), timeout=timeout)
+            else:
+                result = session.run(Query(query, **kwargs))
             records = [record for record in result]
             return records
 
