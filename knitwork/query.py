@@ -31,8 +31,7 @@ def get_driver():
         _driver = GraphDatabase.driver(
             CONFIG["GRAPH_LOCATION"],
             auth=(CONFIG["GRAPH_USERNAME"], CONFIG["GRAPH_PASSWORD"]),
-            max_connection_pool_size=CONFIG["GRAPH_MAX_CONNECTIONS"],
-            max_connection_lifetime=CONFIG["GRAPH_MAX_LIFETIME"],
+            max_connection_pool_size=CONFIG["GRAPH_MAX_CONNECTION_POOL"],
         )
     return _driver
 
@@ -44,8 +43,7 @@ async def aget_driver():
         _adriver = AsyncGraphDatabase.driver(
             CONFIG["GRAPH_LOCATION"],
             auth=(CONFIG["GRAPH_USERNAME"], CONFIG["GRAPH_PASSWORD"]),
-            max_connection_pool_size=CONFIG["GRAPH_MAX_CONNECTIONS"],
-            max_connection_lifetime=CONFIG["GRAPH_MAX_LIFETIME"],
+            max_connection_pool_size=CONFIG["GRAPH_MAX_CONNECTION_POOL"],
         )
     return _adriver
 
