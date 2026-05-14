@@ -14,7 +14,7 @@ from .tools import load_sig_factory, calc_pharm_fp
 
 
 def check_config():
-    graph_vars = ["GRAPH_LOCATION", "GRAPH_USERNAME", "GRAPH_PASSWORD", "GRAPH_MAX_CONNECTIONS"]
+    graph_vars = ["GRAPH_LOCATION", "GRAPH_USERNAME", "GRAPH_PASSWORD", "GRAPH_MAX_CONNECTION_POOL"]
     missing = []
     for var in graph_vars:
         if var not in CONFIG:
