@@ -39,7 +39,7 @@ def pure_merge(
     # parallel merging
     results = Parallel(
         n_jobs=CONFIG["KNITWORK_NUM_CONNECTIONS"],
-        backend="threading",
+        backend="multiprocessing",
     )(
         delayed(get_pure_expansions)(
             smiles,
