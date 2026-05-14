@@ -7,13 +7,14 @@ import time
 import asyncio
 from rdkit.Chem import MolFromSmiles
 from neo4j import GraphDatabase, AsyncGraphDatabase, Query
+from neo4j.exceptions import Noe4jError
 
 from .config import CONFIG
 from .tools import load_sig_factory, calc_pharm_fp
 
 
 def check_config():
-    graph_vars = ["GRAPH_LOCATION", "GRAPH_USERNAME", "GRAPH_PASSWORD"]
+    graph_vars = ["GRAPH_LOCATION", "GRAPH_USERNAME", "GRAPH_PASSWORD", "GRAPH_MAX_CONNECTIONS"]
     missing = []
     for var in graph_vars:
         if var not in CONFIG:
@@ -22,21 +23,29 @@ def check_config():
         mrich.error("Configuration missing:", missing)
         raise ValueError(f"Configuration missing: {missing}")
 
-
+_driver = None
 def get_driver():
-    check_config()
-    return GraphDatabase.driver(
-        CONFIG["GRAPH_LOCATION"],
-        auth=(CONFIG["GRAPH_USERNAME"], CONFIG["GRAPH_PASSWORD"]),
-    )
+    global _driver
+    if not _driver:
+        check_config()
+        _driver = GraphDatabase.driver(
+            CONFIG["GRAPH_LOCATION"],
+            auth=(CONFIG["GRAPH_USERNAME"], CONFIG["GRAPH_PASSWORD"]),
+            max_connection_pool_size=CONFIG["GRAPH_MAX_CONNECTIONS"],
+        )
+    return _driver
 
-
+_adriver = None
 async def aget_driver():
-    check_config()
-    return AsyncGraphDatabase.driver(
-        CONFIG["GRAPH_LOCATION"],
-        auth=(CONFIG["GRAPH_USERNAME"], CONFIG["GRAPH_PASSWORD"]),
-    )
+    global _adriver
+    if not _adriver:
+        check_config()
+        _adriver = AsyncGraphDatabase.driver(
+            CONFIG["GRAPH_LOCATION"],
+            auth=(CONFIG["GRAPH_USERNAME"], CONFIG["GRAPH_PASSWORD"]),
+            max_connection_pool_size=CONFIG["GRAPH_MAX_CONNECTIONS"],
+        )
+    return _adriver
 
 
 async def arun_query(query, timeout=None):
@@ -59,16 +68,21 @@ def run_query(query, timeout=None):
     driver = get_driver()
     with driver:
         with driver.session() as session:
-            if timeout:
-                print(f"Running query with timeout: {timeout}s")
-                t0 = time.time()
-                result = session.run(Query(query), timeout=timeout)
-                t1 = time.time()
-                print(f"Query completed in {t1-t0:.2f} seconds")
-            else:
-                result = session.run(Query(query))
-            records = [record for record in result]
-            return records
+            try:
+                if timeout:
+                    print(f"Running query with timeout: {timeout}s")
+                    t0 = time.time()
+                    result = session.run(Query(query), timeout=timeout)
+                    t1 = time.time()
+                    print(f"Query completed in {t1-t0:.2f} seconds")
+                else:
+                    result = session.run(Query(query))
+                records = [record for record in result]
+                return records
+            except Noe4jError as e:
+                if "timed out" in str(e).lower():
+                    print("Query terminated by Neo4j timeout")
+                    return [None]
 
 
 async def aget_subnodes(
@@ -304,7 +318,8 @@ def get_pure_expansions(
 
     results = []
     for record in records:
-        results.append((record["ids"], record["smi"]))
+        if record:
+            results.append((record["ids"], record["smi"]))
 
     if cache_dir:
         json.dump(results, open(cache_file, "wt"), indent=2)
@@ -399,12 +414,13 @@ def get_impure_expansions(
 
     results = []
     for record in records:
-        results.append(
-            (
-                record["smi"],  # expansion
-                record["syn"],  # synthon
-                record["sim"],  # similarity
-                record["ids"],  # compound names / IDs
+        if record:
+            results.append(
+                (
+                    record["smi"],  # expansion
+                    record["syn"],  # synthon
+                    record["sim"],  # similarity
+                    record["ids"],  # compound names / IDs
             )
         )
 
