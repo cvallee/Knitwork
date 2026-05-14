@@ -7,7 +7,7 @@ import time
 import asyncio
 from rdkit.Chem import MolFromSmiles
 from neo4j import GraphDatabase, AsyncGraphDatabase, Query
-from neo4j.exceptions import Noe4jError
+from neo4j.exceptions import Neo4jError
 
 from .config import CONFIG
 from .tools import load_sig_factory, calc_pharm_fp
@@ -52,16 +52,21 @@ async def arun_query(query, timeout=None):
     driver = await aget_driver()
     async with driver:
         async with driver.session() as session:
-            if timeout:
-                print(f"Running asynchronous query with timeout: {timeout}s")
-                t0 = time.time()
-                result = await session.run(Query(query, timeout=timeout))
-                t1 = time.time()
-                print(f"Query completed in {t1-t0:.2f} seconds")
-            else:
-                result = await session.run(Query(query))
-            records = [record async for record in result]
-            return records
+            try:
+                if timeout:
+                    print(f"Running asynchronous query with timeout: {timeout}s")
+                    t0 = time.time()
+                    result = await session.run(Query(query, timeout=timeout))
+                    t1 = time.time()
+                    print(f"Query completed in {t1-t0:.2f} seconds")
+                else:
+                    result = await session.run(Query(query))
+                records = [record async for record in result]
+                return records
+            except Neo4jError as e:
+                if "timed out" in str(e).lower():
+                    print("Query terminated by Neo4j timeout")
+                    return [None]
 
 
 def run_query(query, timeout=None):
@@ -79,7 +84,7 @@ def run_query(query, timeout=None):
                     result = session.run(Query(query))
                 records = [record for record in result]
                 return records
-            except Noe4jError as e:
+            except Neo4jError as e:
                 if "timed out" in str(e).lower():
                     print("Query terminated by Neo4j timeout")
                     return [None]
