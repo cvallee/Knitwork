@@ -73,23 +73,33 @@ async def arun_query(query, timeout=None):
 
 def run_query(query, timeout=None):
     driver = get_driver()
-    with driver:
-        with driver.session() as session:
-            try:
-                if timeout:
-                    print(f"Running query with timeout: {timeout}s")
-                    t0 = time.time()
-                    result = session.run(Query(query), timeout=timeout)
-                    t1 = time.time()
-                    print(f"Query completed in {t1-t0:.2f} seconds")
-                else:
-                    result = session.run(Query(query))
-                records = [record for record in result]
-                return records
-            except Neo4jError as e:
-                if "timed out" in str(e).lower():
-                    print("Query terminated by Neo4j timeout")
-                    return [None]
+    attempts = CONFIG["KNITWORK_MAX_ATTEMPTS"]
+    for _ in range(attempts):
+        try:
+            with driver:
+                with driver.session() as session:
+                    if timeout:
+                        print(f"Running query with timeout: {timeout}s")
+                        t0 = time.time()
+                        result = session.run(Query(query), timeout=timeout)
+                        t1 = time.time()
+                        print(f"Query completed in {t1-t0:.2f} seconds")
+                    else:
+                        result = session.run(Query(query))
+                    records = [record for record in result]
+                    return records
+        except Neo4jError as e:
+            msg = str(e).lower()
+            if "timed out" in msg:
+                print("Query terminated by Neo4j timeout")
+                return [None]
+            elif "defunct connection" in msg:
+                print("Defunct connection error, retrying query")
+                continue
+            elif "service unavailable" in msg or "connection" in msg:
+                continue
+            else:
+                raise e
 
 
 async def aget_subnodes(
