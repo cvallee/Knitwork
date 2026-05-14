@@ -39,7 +39,7 @@ def pure_merge(
     # parallel merging
     results = Parallel(
         n_jobs=CONFIG["KNITWORK_NUM_CONNECTIONS"],
-        backend="multiprocessing",
+        backend="threading",
     )(
         delayed(get_pure_expansions)(
             smiles,
@@ -129,7 +129,7 @@ def impure_merge(
     # parallel merging
     results = Parallel(
         n_jobs=CONFIG["KNITWORK_NUM_CONNECTIONS"],
-        backend="multiprocessing",
+        backend="threading",
     )(
         delayed(get_impure_expansions)(
             smiles,
