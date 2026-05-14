@@ -23,6 +23,7 @@ def check_config():
         mrich.error("Configuration missing:", missing)
         raise ValueError(f"Configuration missing: {missing}")
 
+
 _driver = None
 def get_driver():
     global _driver
@@ -34,6 +35,7 @@ def get_driver():
             max_connection_pool_size=CONFIG["GRAPH_MAX_CONNECTION_POOL"],
         )
     return _driver
+
 
 _adriver = None
 async def aget_driver():
@@ -50,34 +52,46 @@ async def aget_driver():
 
 async def arun_query(query, timeout=None):
     driver = await aget_driver()
-    async with driver:
-        async with driver.session() as session:
-            if timeout:
-                print(f"Running asynchronous query with timeout: {timeout}s")
-                t0 = time.time()
-                result = await session.run(Query(query, timeout=timeout))
-                t1 = time.time()
-                print(f"Query completed in {t1-t0:.2f} seconds")
-            else:
-                result = await session.run(Query(query))
-            records = [record async for record in result]
-            return records
+    async with driver.session() as session:
+        if timeout:
+            print(f"Running asynchronous query with timeout: {timeout}s")
+            t0 = time.time()
+            result = await session.run(Query(query, timeout=timeout))
+            t1 = time.time()
+            print(f"Query completed in {t1-t0:.2f} seconds")
+        else:
+            result = await session.run(Query(query))
+        records = [record async for record in result]
+        return records
 
 
 def run_query(query, timeout=None):
     driver = get_driver()
-    with driver:
-        with driver.session() as session:
-            if timeout:
-                print(f"Running query with timeout: {timeout}s")
-                t0 = time.time()
-                result = session.run(Query(query), timeout=timeout)
-                t1 = time.time()
-                print(f"Query completed in {t1-t0:.2f} seconds")
-            else:
-                result = session.run(Query(query))
-            records = [record for record in result]
-            return records
+    with driver.session() as session:
+        if timeout:
+            print(f"Running query with timeout: {timeout}s")
+            t0 = time.time()
+            result = session.run(Query(query), timeout=timeout)
+            t1 = time.time()
+            print(f"Query completed in {t1-t0:.2f} seconds")
+        else:
+            result = session.run(Query(query))
+        records = [record for record in result]
+        return records
+
+
+def close_driver():
+    global _driver
+    if _driver is not None:
+        _driver.close()
+        _driver = None
+
+
+def close_adriver():
+    global _adriver
+    if _adriver is not None:
+        _adriver.close()
+        _adriver = None
 
 
 async def aget_subnodes(

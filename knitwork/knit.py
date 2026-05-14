@@ -11,7 +11,7 @@ from joblib import Parallel, delayed
 from rdkit.Chem import MolFromSmiles, PandasTools
 
 from .config import CONFIG, print_config
-from .query import get_pure_expansions, get_impure_expansions
+from .query import get_pure_expansions, get_impure_expansions, close_driver
 
 
 def pure_merge(
@@ -52,6 +52,9 @@ def pure_merge(
         )
         for i, (_, smiles, synthon) in enumerate(substructure_pairs)
     )
+
+    # close graph connection
+    close_driver()
 
     if not results:
         mrich.error("No results")
@@ -142,6 +145,9 @@ def impure_merge(
         )
         for i, (_, smiles, synthon) in enumerate(substructure_pairs)
     )
+
+    # close graph connection
+    close_driver()
 
     if not results:
         mrich.error("No results")

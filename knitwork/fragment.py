@@ -3,7 +3,7 @@ from mrich import print
 from pathlib import Path
 from .config import CONFIG, print_config
 import asyncio
-from .query import aget_subnodes, aget_synthons, aget_r_groups
+from .query import aget_subnodes, aget_synthons, aget_r_groups, close_adriver
 from rich.progress import Progress
 from rdkit import Chem
 
@@ -62,6 +62,9 @@ def fragment(
             fragment_tasks(smiles_list, progress, timeout, (t1, t2, t3))
         )
 
+    # close graph connection
+    close_adriver()
+    
     # filter results
     for smiles, v in results.items():
         v["subnodes"] = filter_smiles_list(v["subnodes"], synthons=False)
