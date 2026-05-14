@@ -44,9 +44,13 @@ async def arun_query(query, timeout=None):
     async with driver:
         async with driver.session() as session:
             if timeout:
+                print(f"Running asynchronous query with timeout: {timeout}s")
+                t0 = time.time()
                 result = await session.run(Query(query, timeout=timeout))
+                t1 = time.time()
+                print(f"Query completed in {t1-t0:.2f} seconds")
             else:
-                result = await session.run(Query(query, timeout=timeout))
+                result = await session.run(Query(query))
             records = [record async for record in result]
             return records
 
@@ -56,7 +60,11 @@ def run_query(query, timeout=None):
     with driver:
         with driver.session() as session:
             if timeout:
+                print(f"Running query with timeout: {timeout}s")
+                t0 = time.time()
                 result = session.run(Query(query), timeout=timeout)
+                t1 = time.time()
+                print(f"Query completed in {t1-t0:.2f} seconds")
             else:
                 result = session.run(Query(query))
             records = [record for record in result]
