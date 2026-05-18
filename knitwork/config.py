@@ -9,6 +9,7 @@ VARIABLES = {
     "GRAPH_LOCATION": str,
     "GRAPH_USERNAME": str,
     "GRAPH_PASSWORD": str,
+    "GRAPH_MAX_CONNECTION_POOL": int,
     "FRAGMENT_OVERLAP_CUTOFF": float,
     "FRAGMENT_DISTANCE_CUTOFF": float,
     "FRAGMENT_TERMINAL_SYNTHONS": bool,
@@ -39,6 +40,7 @@ DEFAULTS = {
     "FINGERPRINT_FDEF": "FeatureswAliphaticXenon.fdef",
     "FINGERPRINT_MAXPOINTCOUNT": 2,
     "FINGERPRINT_BINS": "[[0, 2], [2, 5], [5, 8]]",
+    "GRAPH_MAX_CONNECTION_POOL": 20,
 }
 
 
@@ -46,7 +48,7 @@ def load_config(
     config_path: str | Path | None = None,
 ) -> dict:
     """Load configuration from JSON, or use defaults"""
-    
+
     config_path = Path(config_path or DEFAULT_CONFIG_PATH)
 
     if config_path.exists():
@@ -58,11 +60,11 @@ def load_config(
 
 
 def dump_config(
-    config: dict, 
+    config: dict,
     config_path: str | Path | None = None,
 ) -> None:
     """Dump configuration as JSON"""
-    
+
     config_path = Path(config_path or DEFAULT_CONFIG_PATH)
     mrich.writing(config_path)
     json.dump(config, open(config_path, "wt"), indent=2)
@@ -72,7 +74,7 @@ def setup_config(
     config_path: str | Path | None = None,
 ) -> None:
     """Set global CONFIG variable"""
-    
+
     global CONFIG
     CONFIG = load_config(config_path=config_path)
 
@@ -87,4 +89,3 @@ def print_config(prefix: str = None) -> None:
         )
     else:
         mrich.var("CONFIG", CONFIG)
-

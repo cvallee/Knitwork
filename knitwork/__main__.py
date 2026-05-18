@@ -11,11 +11,12 @@ def fragment(
     input_sdf: str,
     output_dir: str = "fragment_output",
     config_path: str = None,
+    timeout: float | None = None,
 ):
     """Fragment and pair up input molecules so that substructure matching can be run"""
 
     mrich.h1("FRAGMENT")
-    
+
     init_config(config_path=config_path)
 
     from .fragment import fragment as frag
@@ -25,7 +26,7 @@ def fragment(
     mrich.var("input_sdf", input_sdf)
     mol_df = PandasTools.LoadSDF(str(input_sdf.resolve()))
 
-    frag(mol_df, output_dir)
+    frag(mol_df, output_dir, timeout=timeout)
 
 
 @app.command()
@@ -34,6 +35,7 @@ def pure_merge(
     output_dir: str = "knitwork_output",
     cached_only: bool = False,
     limit: int = 5,
+    timeout: float | None = None,
     config_path: str = None,
 ):
     """Enumerate 'pure' knitwork merges"""
@@ -56,7 +58,11 @@ def pure_merge(
     pairs_df = pd.read_pickle(pairs_df)
 
     merge(
-        pairs_df=pairs_df, output_dir=output_dir, cached_only=cached_only, limit=limit
+        pairs_df=pairs_df,
+        output_dir=output_dir,
+        cached_only=cached_only,
+        limit=limit,
+        timeout=timeout,
     )
 
 
@@ -66,14 +72,15 @@ def impure_merge(
     output_dir: str = "knitwork_output",
     cached_only: bool = False,
     limit: int = 5,
+    timeout: float | None = None,
     config_path: str = None,
 ):
     """Enumerate 'impure' knitwork merges"""
 
     mrich.h1("IMPURE MERGE")
-    
+
     init_config(config_path=config_path)
-    
+
     from .knit import impure_merge as merge
     import pandas as pd
 
@@ -88,7 +95,11 @@ def impure_merge(
     pairs_df = pd.read_pickle(pairs_df)
 
     merge(
-        pairs_df=pairs_df, output_dir=output_dir, cached_only=cached_only, limit=limit
+        pairs_df=pairs_df,
+        output_dir=output_dir,
+        cached_only=cached_only,
+        limit=limit,
+        timeout=timeout,
     )
 
 
@@ -100,7 +111,7 @@ def configure(
     silent: bool = False,
 ):
     """Set a configuration variable"""
-    
+
     init_config(config_path=config_path)
 
     from .config import VARIABLES, CONFIG, dump_config
@@ -159,11 +170,14 @@ def combine_inputs(
         writer.write(mol)
     writer.close()
 
+
 def init_config(
     config_path: str | Path | None = None,
 ) -> None:
     from .config import setup_config
+
     setup_config(config_path=config_path)
+
 
 if __name__ == "__main__":
     app()

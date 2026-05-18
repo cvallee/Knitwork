@@ -3,7 +3,7 @@ from mrich import print
 from pathlib import Path
 from .config import CONFIG, print_config
 import asyncio
-from .query import aget_subnodes, aget_synthons, aget_r_groups
+from .query import aget_subnodes, aget_synthons, aget_r_groups, close_adriver
 from rich.progress import Progress
 from rdkit import Chem
 
@@ -17,6 +17,7 @@ def fragment(
     overlap_cutoff: float = CONFIG["FRAGMENT_OVERLAP_CUTOFF"],
     distance_cutoff: float = CONFIG["FRAGMENT_DISTANCE_CUTOFF"],
     discard_props: bool = True,
+    timeout: float | None = None,
 ):
 
     import pandas as pd
@@ -57,8 +58,13 @@ def fragment(
         t1 = progress.add_task("query subnodes", total=n_unique)
         t2 = progress.add_task("query synthons", total=n_unique)
         t3 = progress.add_task("query r_groups", total=n_unique)
-        results = asyncio.run(fragment_tasks(smiles_list, progress, (t1, t2, t3)))
+        results = asyncio.run(
+            fragment_tasks(smiles_list, progress, timeout, (t1, t2, t3))
+        )
 
+    # close graph connection
+    close_adriver()
+    
     # filter results
     for smiles, v in results.items():
         v["subnodes"] = filter_smiles_list(v["subnodes"], synthons=False)
@@ -134,15 +140,15 @@ def fragment(
     pair_df.to_pickle(pair_df_path)
 
 
-async def fragment_tasks(smiles_list, progress, tasks):
+async def fragment_tasks(smiles_list, progress, timeout, tasks):
 
     t1, t2, t3 = tasks
 
     tasks = [
         asyncio.gather(
-            aget_subnodes(smiles, progress=progress, task=t1),
-            aget_synthons(smiles, progress=progress, task=t2),
-            aget_r_groups(smiles, progress=progress, task=t3),
+            aget_subnodes(smiles, progress=progress, timeout=timeout, task=t1),
+            aget_synthons(smiles, progress=progress, timeout=timeout, task=t2),
+            aget_r_groups(smiles, progress=progress, timeout=timeout, task=t3),
         )
         for smiles in smiles_list
     ]
