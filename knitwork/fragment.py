@@ -63,7 +63,7 @@ def fragment(
         )
 
     # close graph connection
-    close_adriver()
+    asyncio.run(close_adriver())
     
     # filter results
     for smiles, v in results.items():
