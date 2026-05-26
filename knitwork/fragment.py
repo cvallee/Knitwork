@@ -63,7 +63,7 @@ def fragment(
         )
 
     # close graph connection
-    await close_adriver()
+    close_adriver()
     
     # filter results
     for smiles, v in results.items():
