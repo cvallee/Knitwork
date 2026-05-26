@@ -79,7 +79,7 @@ def close_driver():
         _driver = None
 
 
-def close_adriver():
+async def close_adriver():
     global _adriver
     if _adriver is not None:
         _adriver.close()
