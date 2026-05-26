@@ -61,9 +61,6 @@ def fragment(
         results = asyncio.run(
             fragment_tasks(smiles_list, progress, timeout, (t1, t2, t3))
         )
-
-    # close graph connection
-    asyncio.run(close_adriver())
     
     # filter results
     for smiles, v in results.items():
@@ -154,6 +151,9 @@ async def fragment_tasks(smiles_list, progress, timeout, tasks):
     ]
 
     results = await asyncio.gather(*tasks)
+
+    # close graph connection
+    await close_adriver()
 
     return {
         smiles: {"subnodes": subnodes, "synthons": synthons, "r_groups": r_groups}
